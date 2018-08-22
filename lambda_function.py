@@ -35,10 +35,49 @@ def fetch_telephony_logs(min_time=None):
     print('Retreived Telephony Logs::')    
     return telephony_logs
 
+def format_auth_logs(data):
+     out = []
+     for i in data:
+         i['auth_device']['name'] = '*****'
+         out.append(i)
+     data = '\n'.join([json.dumps(i) for i in out])
+     return data
 
-def format_logs(data):
-    data = '\n'.join([json.dumps(i) for i in data])
-    return data
+def format_telephony_logs(data):
+     out = []
+     for i in data:
+         i['phone']= '*****'
+         out.append(i)
+     data = '\n'.join([json.dumps(i) for i in out])
+     return data
+
+
+
+
+def format_admin_logs(data):
+    out= []
+    for i in data:
+        if('description' in i):
+            i['description'] = json.loads(i['description'])
+            if('device' in i['description']):
+                i['description']['device'] = "*****"
+            elif ('phones' in i['description'] ):
+                for ph in (i['description']['phones']):
+                    i['description']['phones'][ph]['number'] = "*****"
+            elif ('phone' in i['description'] ):
+                i['description']['phone'] ="*****"
+            out.append(i)
+        else:
+            print("admin logs with description")
+            
+        data = '\n'.join([json.dumps(i) for i in out])
+        return data
+        
+        
+            
+ 
+        
+
 
 def dump_logs(data):
     print('dumping logs')
@@ -55,19 +94,19 @@ def dump_logs(data):
 
 def lambda_handler(req, context):
     logs = fetch_logs(min_time=(time.time()-scan_interval_in_sec)*1000, max_time=time.time()*1000)
-    logs = format_logs(logs)
+    logs = format_auth_logs(logs)
     #print(logs)
     dump_logs(logs)
 
 #fetch admin logs
     logs_admin = fetch_admin_logs(min_time=(time.time()-scan_interval_in_sec))
-    logs_admin = format_logs(logs_admin)
+    logs_admin = format_admin_logs(logs_admin)
     #print(logs_admin)
     dump_logs(logs_admin)
 
 #fetch telephony logs
     logs_telephony = fetch_telephony_logs(min_time=(time.time()-scan_interval_in_sec))
-    logs_telephony = format_logs(logs_telephony)
+    logs_telephony = format_telephony_logs(logs_telephony)
     #print(logs_telephony)
     dump_logs(logs_telephony)
 
