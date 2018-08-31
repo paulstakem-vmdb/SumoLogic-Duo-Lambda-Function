@@ -1,8 +1,8 @@
-import duo_client
-import time
-from botocore.vendored import requests
 import os
 import json
+import time
+from botocore.vendored import requests
+import duo_client
 
 i_key = os.environ.get('I_KEY')
 s_key = os.environ.get('S_KEY')
@@ -11,73 +11,60 @@ collector_url = os.environ.get('COLL_ENDPOINT')
 scan_interval_in_sec = int(os.environ['SCAN_INTERVAL_IN_SEC'])
 
 admin_api = duo_client.Admin(
-        ikey=i_key,
-        skey=s_key,
-        host=host
+    ikey=i_key,
+    skey=s_key,
+    host=host
     )
-
-
 
 def fetch_logs(min_time=None, max_time=None):
     auth_logs = admin_api.get_authentication_log(api_version=2, mintime=min_time, maxtime=max_time) # kwarg mintime
     return auth_logs['authlogs'] #this isn't considering iteration in event too many messages returned.
 
-
-
 def fetch_admin_logs(min_time=None):
-    admin_logs = admin_api.get_administrator_log(mintime=min_time) 
-    print('Retreived admin Logs.')    
+    admin_logs = admin_api.get_administrator_log(mintime=min_time)
+    print('Retreived admin Logs.')
     return admin_logs
 
-
 def fetch_telephony_logs(min_time=None):
-    telephony_logs = admin_api.get_telephony_log(mintime=min_time) 
-    print('Retreived Telephony Logs::')    
+    telephony_logs = admin_api.get_telephony_log(mintime=min_time)
+    print('Retreived Telephony Logs::')
     return telephony_logs
 
 def format_auth_logs(data):
-     out = []
-     for i in data:
-         i['auth_device']['name'] = '*****'
-         out.append(i)
-     data = '\n'.join([json.dumps(i) for i in out])
-     return data
+    out = []
+    for i in data:
+        i['auth_device']['name'] = '*****'
+        out.append(i)
+    data = '\n'.join([json.dumps(i) for i in out])
+    return data
 
 def format_telephony_logs(data):
-     out = []
-     for i in data:
-         i['phone']= '*****'
-         out.append(i)
-     data = '\n'.join([json.dumps(i) for i in out])
-     return data
-
-
+    out = []
+    for i in data:
+        i['phone'] = '*****'
+        out.append(i)
+    data = '\n'.join([json.dumps(i) for i in out])
+    return data
 
 
 def format_admin_logs(data):
-    out= []
+    out = []
     for i in data:
-        if('description' in i):
+        if 'description' in i:
             i['description'] = json.loads(i['description'])
-            if('device' in i['description']):
+            if 'device' in i['description']:
                 i['description']['device'] = "*****"
-            elif ('phones' in i['description'] ):
-                for ph in (i['description']['phones']):
+            elif 'phones' in i['description']:
+                for ph in i['description']['phones']:
                     i['description']['phones'][ph]['number'] = "*****"
-            elif ('phone' in i['description'] ):
-                i['description']['phone'] ="*****"
+            elif 'phone' in i['description']:
+                i['description']['phone'] = "*****"
             out.append(i)
         else:
             print("admin logs with description")
-            
+
         data = '\n'.join([json.dumps(i) for i in out])
         return data
-        
-        
-            
- 
-        
-
 
 def dump_logs(data):
     print('dumping logs')
@@ -86,7 +73,7 @@ def dump_logs(data):
     while r.status_code != 200:
         if tries <= 0:
             raise Exception('Excessive retries. Issue in posting log data.')
-        tries-=1
+        tries -= 1
         # naive - should be checking for specific codes but w/e
         time.sleep(2)
         r = requests.post(collector_url, data=data)
@@ -109,5 +96,3 @@ def lambda_handler(req, context):
     logs_telephony = format_telephony_logs(logs_telephony)
     #print(logs_telephony)
     dump_logs(logs_telephony)
-
-
